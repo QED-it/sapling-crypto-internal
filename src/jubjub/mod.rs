@@ -330,6 +330,8 @@ impl JubjubBls12 {
 
         // Create the 3-bit window table lookups for fixed-base
         // exp of each base in the protocol.
+        // The base g_i of the i'th window is (8^i)*gen
+        // and we store the values 0, g_i,2*g_i,..,7*g_i
         {
             let mut fixed_base_circuit_generators = vec![];
 

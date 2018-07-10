@@ -131,7 +131,7 @@ impl<E: Engine> AllocatedNum<E> {
 
         let mut result = vec![];
 
-        // Flag indicating evidence that a<r hasn't been found yet, i.e. a was 1 whenever r-1 was, 
+        // Flag indicating evidence that a < r hasn't been found yet, i.e. a was 1 whenever r-1 was,
         // when checking bit-wise from the msb.
         let mut equal_so_far = None;
         // Vector of values of a, during runs of ones in r
