@@ -143,6 +143,8 @@ impl<E: Engine> AllocatedNum<E> {
             found_one |= b;
             if !found_one {
                 // a_bit should also be false
+                // doesn't need to be checked in the circuit,
+                // since we don't consider it as part of the lc
                 a_bit.map(|e| assert!(!e));
                 continue;
             }
@@ -565,7 +567,7 @@ mod test {
         let mut cs = TestConstraintSystem::<Bls12>::new();
 
         let n = AllocatedNum::alloc(&mut cs, || Ok(negone)).unwrap();
-        n.into_bits_le_strict(&mut cs).unwrap();
+        let bits = n.into_bits_le_strict(&mut cs).unwrap();
 
         assert!(cs.is_satisfied());
 
@@ -574,6 +576,19 @@ mod test {
 
         // this makes the conditional boolean constraint fail
         assert_eq!(cs.which_is_unsatisfied().unwrap(), "bit 254/boolean constraint");
+
+        // make the bit representation r-1 again
+        cs.set("bit 254/boolean", Fr::zero());
+
+        for (i, b) in bits.iter().rev().enumerate() {
+            if b.get_value().unwrap() == false {
+                let position_bool = format!("bit {}/boolean", i);
+                cs.set(&position_bool, Fr::one());
+                assert_eq!(cs.which_is_unsatisfied().unwrap(), &format!("bit {}/boolean constraint", i));
+                cs.set(&position_bool, Fr::zero());
+            }
+        }
+
     }
 
     #[test]
