@@ -41,28 +41,37 @@ pub fn pedersen_hash<E, I>(
         let mut encountered_bits = false;
 
         // Grab three bits from the input
+        // Do this 63 times
         while let Some(a) = bits.next() {
             encountered_bits = true;
 
+            // Pad length to a multiple of 3
             let b = bits.next().unwrap_or(false);
             let c = bits.next().unwrap_or(false);
 
             // Start computing this portion of the scalar
-            let mut tmp = cur;
+            // Comments show the extreme values during the last iteration.
+            let mut tmp = cur;          // tmp = 2^248  (62 * 4 doublings)
             if a {
-                tmp.add_assign(&cur);
+                tmp.add_assign(&cur);   // 2^248 <= tmp <= 2^249
             }
-            cur.double(); // 2^1 * cur
+            cur.double();               // cur = 2^249
             if b {
-                tmp.add_assign(&cur);
+                tmp.add_assign(&cur);   // tmp <= 2^250
             }
 
             // conditionally negate
             if c {
-                tmp.negate();
+                tmp.negate();           // -2^250 <= tmp
             }
 
+            // So far, -2^247 < acc < 2^247 because the largest tmp has been 2^246.
+
+            // Accumulate this chunk.
             acc.add_assign(&tmp);
+
+            // After the last iteration, and wrapping negative values modulo s:
+            // 0  <  largest positive acc  <  2^250 + 2^247  <  s - 2^250 - 2^247)  <  lowest negative acc mod s  <  s
 
             chunks_remaining -= 1;
 

@@ -169,8 +169,10 @@ pub fn lookup3_xy_with_conditional_negation<E: Engine, CS>(
     synth::<E, _>(2, coords.iter().map(|c| &c.0), &mut x_coeffs);
     synth::<E, _>(2, coords.iter().map(|c| &c.1), &mut y_coeffs);
 
+    // Constraint: AND
     let precomp = Boolean::and(cs.namespace(|| "precomp"), &bits[0], &bits[1])?;
 
+    // No constraint on x
     let x = Num::zero()
             .add_bool_with_coeff(one, &Boolean::constant(true), x_coeffs[0b00])
             .add_bool_with_coeff(one, &bits[0], x_coeffs[0b01])
@@ -182,6 +184,7 @@ pub fn lookup3_xy_with_conditional_negation<E: Engine, CS>(
                &bits[0].lc::<E>(one, y_coeffs[0b01]) +
                (y_coeffs[0b00], one);
 
+    // Constraint: Point negation
     cs.enforce(
         || "y-coordinate lookup",
         |lc| lc + &y_lc + &y_lc,
