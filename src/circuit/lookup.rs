@@ -172,7 +172,6 @@ pub fn lookup3_xy_with_conditional_negation<E: Engine, CS>(
     // Constraint: AND
     let precomp = Boolean::and(cs.namespace(|| "precomp"), &bits[0], &bits[1])?;
 
-    // No constraint on x
     let x = Num::zero()
             .add_bool_with_coeff(one, &Boolean::constant(true), x_coeffs[0b00])
             .add_bool_with_coeff(one, &bits[0], x_coeffs[0b01])
