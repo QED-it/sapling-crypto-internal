@@ -31,7 +31,7 @@ pub fn pedersen_hash<E: JubjubEngine, CS>(
     let personalization = personalization.get_constant_bools();
     assert_eq!(personalization.len(), 6);
 
-    let mut edwards_result = None;
+    let mut hash_result = None;
     let mut bits = personalization.iter().chain(bits.iter());
     let mut segment_generators = params.pedersen_circuit_generators().iter();
     let boolean_false = Boolean::constant(false);
@@ -59,10 +59,10 @@ pub fn pedersen_hash<E: JubjubEngine, CS>(
                 None => {
                     segment_result = Some(tmp);
                 },
-                Some(ref mut segment_result) => {
-                    *segment_result = tmp.add(
+                Some(ref mut segment_mont) => {
+                    *segment_mont = tmp.add(
                         cs.namespace(|| format!("addition of segment {}, window {}", segment_i, window_i)),
-                        segment_result,
+                        segment_mont,
                         params
                     )?;
                 }
@@ -78,23 +78,23 @@ pub fn pedersen_hash<E: JubjubEngine, CS>(
         }
 
         match segment_result {
-            Some(segment_result) => {
+            Some(segment_mont) => {
                 // Convert this segment into twisted Edwards form.
-                let segment_result = segment_result.into_edwards(
+                let segment_edwards = segment_mont.into_edwards(
                     cs.namespace(|| format!("conversion of segment {} into edwards", segment_i)),
                     params
                 )?;
 
-                match edwards_result {
-                    Some(ref mut edwards_result) => {
-                        *edwards_result = segment_result.add(
+                match hash_result {
+                    None => {
+                        hash_result = Some(segment_edwards);
+                    },
+                    Some(ref mut hash_edwards) => {
+                        *hash_edwards = segment_edwards.add(
                             cs.namespace(|| format!("addition of segment {} to accumulator", segment_i)),
-                            edwards_result,
+                            hash_edwards,
                             params
                         )?;
-                    },
-                    None => {
-                        edwards_result = Some(segment_result);
                     }
                 }
             },
@@ -107,7 +107,7 @@ pub fn pedersen_hash<E: JubjubEngine, CS>(
         segment_i += 1;
     }
 
-    Ok(edwards_result.unwrap())
+    Ok(hash_result.unwrap())
 }
 
 #[cfg(test)]
