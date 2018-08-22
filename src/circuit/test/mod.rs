@@ -23,7 +23,7 @@ use std::collections::BTreeMap;
 use blake2_rfc::blake2s::Blake2s;
 
 #[derive(Debug)]
-enum NamedObject {
+pub enum NamedObject {
     Constraint(usize),
     Var(Variable),
     Namespace
@@ -341,6 +341,71 @@ impl<E: Engine> TestConstraintSystem<E> {
         }
 
         self.named_objects.insert(path, to);
+    }
+
+    pub fn get_named_objects(&self) -> Vec<String> {
+        self.named_objects.iter().map(|(x,y)| x.clone()).collect()
+    }
+
+    pub fn save_named_objects(&self, name: &str)  {
+        let mut constraints: Vec<String> = vec![];
+        let mut variables:Vec<String> = vec![];
+        for (x,y) in &self.named_objects {
+            match *y {
+                NamedObject::Constraint(_) => {
+                    constraints.push(x.clone());
+                }
+                NamedObject::Var(_) => {
+                    variables.push(x.clone());
+                }
+                _ => {
+
+                }
+            }
+        }
+
+        let clean = |x:&String| {
+            x.replace(" ", "_").replace("-", "_")
+        };
+        let constraints_str: String = constraints.iter().map(|x| {
+            //let split_x: Vec<String> = x.split('/').enumerate().map(|y| y.1.to_owned() + &y.0.to_string()).collect();
+            let split_x: Vec<String> = x.split('/').map(|y| y.to_owned()).collect();
+            let mut rets: Vec<String> = vec![];
+            let mut prev = String::new();
+            let mut cumu_prev = String::new();
+            for z in &split_x {
+                if prev.len() > 0 {
+                    rets.push(prev + "->" + &(cumu_prev.clone()+&clean(z)));
+                } else {
+                    rets.push(clean(z));
+                }
+                prev = clean(z);
+                cumu_prev += &(clean(z) + "_");
+            }
+            rets.join("\n")
+        }).collect::<Vec<String>>().join("\n");
+
+        let variables_str: String = variables.iter().map(|x| {
+                        let split_x: Vec<String> = x.split('/').map(|y| y.to_owned()).collect();
+            let mut rets: Vec<String> = vec![];
+            let mut prev = String::new();
+            let mut cumu_prev = String::new();
+            for z in &split_x {
+                if prev.len() > 0 {
+                    rets.push(prev + "->" + &(cumu_prev.clone()+&clean(z)));
+                } else {
+                    rets.push(clean(z));
+                }
+                prev = clean(z);
+                cumu_prev += &(clean(z) + "_");
+            }
+            rets.join("\n")
+
+        }).collect::<Vec<String>>().join("\n");
+
+        use std::fs::write;
+        write(name.to_owned() + "_constraints", format!("digraph G{{\n{}\n}}", constraints_str));
+        write(name.to_owned() + "_variables", format!("digraph G{{\n{}\n}}", variables_str));
     }
 }
 
