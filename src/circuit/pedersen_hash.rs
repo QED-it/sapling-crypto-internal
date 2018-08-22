@@ -116,8 +116,7 @@ mod test {
     use super::*;
     use ::circuit::test::*;
     use ::circuit::boolean::{Boolean, AllocatedBit};
-    use pairing::bls12_381::{Bls12, Fr};
-    use pairing::PrimeField;
+    use pairing::bls12_381::{Bls12};
 
     /// Predict the number of constraints of a Pedersen hash
     fn ph_num_constraints(input_bits: usize) -> usize {

@@ -454,8 +454,10 @@ impl<E: JubjubEngine> EdwardsPoint<E> {
     ) -> Result<Self, SynthesisError>
         where CS: ConstraintSystem<E>
     {
-        // Compute U = (x1 + y1) * (x2 + y2)
-        let u = AllocatedNum::alloc(cs.namespace(|| "U"), || {
+        // (x3, y3) = (x1, y1) + (x2, y2)
+
+        // Compute T = (x1 + y1) * (x2 + y2)
+        let t = AllocatedNum::alloc(cs.namespace(|| "T"), || {
             let mut t0 = *self.x.get_value().get()?;
             t0.add_assign(self.y.get_value().get()?);
 
@@ -467,19 +469,20 @@ impl<E: JubjubEngine> EdwardsPoint<E> {
             Ok(t0)
         })?;
 
+        // (x1 + y1) * (x2 + y2) = (T)
         cs.enforce(
-            || "U computation",
+            || "T computation",
             |lc| lc + self.x.get_variable()
                     + self.y.get_variable(),
             |lc| lc + other.x.get_variable()
                     + other.y.get_variable(),
-            |lc| lc + u.get_variable()
+            |lc| lc + t.get_variable()
         );
 
-        // Compute A = y2 * x1
+        // Enforce A = y2 * x1
         let a = other.y.mul(cs.namespace(|| "A computation"), &self.x)?;
 
-        // Compute B = x2 * y1
+        // Enforce B = x2 * y1
         let b = other.x.mul(cs.namespace(|| "B computation"), &self.y)?;
 
         // Compute C = d*A*B
@@ -491,6 +494,7 @@ impl<E: JubjubEngine> EdwardsPoint<E> {
             Ok(t0)
         })?;
 
+        // (d * A) * (B) = (C)
         cs.enforce(
             || "C computation",
             |lc| lc + (*params.edwards_d(), a.get_variable()),
@@ -518,6 +522,7 @@ impl<E: JubjubEngine> EdwardsPoint<E> {
             }
         })?;
 
+        // (1 + C) * (x3) = (A + B)
         let one = CS::one();
         cs.enforce(
             || "x3 computation",
@@ -527,9 +532,9 @@ impl<E: JubjubEngine> EdwardsPoint<E> {
                     + b.get_variable()
         );
 
-        // Compute y3 = (U - A - B) / (1 - C)
+        // Compute y3 = (T - A - B) / (1 - C)
         let y3 = AllocatedNum::alloc(cs.namespace(|| "y3"), || {
-            let mut t0 = *u.get_value().get()?;
+            let mut t0 = *t.get_value().get()?;
             t0.sub_assign(a.get_value().get()?);
             t0.sub_assign(b.get_value().get()?);
 
@@ -548,11 +553,12 @@ impl<E: JubjubEngine> EdwardsPoint<E> {
             }
         })?;
 
+        // (1 - C) * (y3) = (T - A - B)
         cs.enforce(
             || "y3 computation",
             |lc| lc + one - c.get_variable(),
             |lc| lc + y3.get_variable(),
-            |lc| lc + u.get_variable()
+            |lc| lc + t.get_variable()
                     - a.get_variable()
                     - b.get_variable()
         );
@@ -597,6 +603,7 @@ impl<E: JubjubEngine> MontgomeryPoint<E> {
             }
         })?;
 
+        // (y) * (u) = (x * scale)
         cs.enforce(
             || "u computation",
             |lc| lc + &self.y.lc(E::Fr::one()),
@@ -623,6 +630,7 @@ impl<E: JubjubEngine> MontgomeryPoint<E> {
             }
         })?;
 
+        // (x + 1) * (v) = (x - 1)
         let one = CS::one();
         cs.enforce(
             || "v computation",
@@ -664,7 +672,9 @@ impl<E: JubjubEngine> MontgomeryPoint<E> {
     ) -> Result<Self, SynthesisError>
         where CS: ConstraintSystem<E>
     {
-        // Compute lambda = (y' - y) / (x' - x)
+        // (x3, y3) = (x1, y1) + (x2, y2)
+
+        // Compute lambda = (y2 - y1) / (x2 - x1)
         let lambda = AllocatedNum::alloc(cs.namespace(|| "lambda"), || {
             let mut n = *other.y.get_value().get()?;
             n.sub_assign(self.y.get_value().get()?);
@@ -683,6 +693,7 @@ impl<E: JubjubEngine> MontgomeryPoint<E> {
             }
         })?;
 
+        // (x2 - x1) * (lambda) = (y2 - y1)
         cs.enforce(
             || "evaluate lambda",
             |lc| lc + &other.x.lc(E::Fr::one())
@@ -694,7 +705,7 @@ impl<E: JubjubEngine> MontgomeryPoint<E> {
                     - &self.y.lc(E::Fr::one())
         );
 
-        // Compute x'' = lambda^2 - A - x - x'
+        // Compute x3 = lambda^2 - A - x1 - x2
         let xprime = AllocatedNum::alloc(cs.namespace(|| "xprime"), || {
             let mut t0 = *lambda.get_value().get()?;
             t0.square();
@@ -705,7 +716,7 @@ impl<E: JubjubEngine> MontgomeryPoint<E> {
             Ok(t0)
         })?;
 
-        // (lambda) * (lambda) = (A + x + x' + x'')
+        // (BM * lambda) * (lambda) = (A + x1 + x2 + x3) with BM=1
         let one = CS::one();
         cs.enforce(
             || "evaluate xprime",
@@ -717,7 +728,7 @@ impl<E: JubjubEngine> MontgomeryPoint<E> {
                     + xprime.get_variable()
         );
 
-        // Compute y' = -(y + lambda(x' - x))
+        // Compute y3 = -(y1 + lambda(x3 - x1))
         let yprime = AllocatedNum::alloc(cs.namespace(|| "yprime"), || {
             let mut t0 = *xprime.get_value().get()?;
             t0.sub_assign(self.x.get_value().get()?);
@@ -728,7 +739,7 @@ impl<E: JubjubEngine> MontgomeryPoint<E> {
             Ok(t0)
         })?;
 
-        // y' + y = lambda(x - x')
+        // (x1 - x3) * (lambda) = (y3 + y1)
         cs.enforce(
             || "evaluate yprime",
             |lc| lc + &self.x.lc(E::Fr::one())
