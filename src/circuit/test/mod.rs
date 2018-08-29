@@ -176,7 +176,7 @@ impl<E: Engine> TestConstraintSystem<E> {
         }).collect::<Vec<_>>();
 
         let pp = |s: &mut String, lc: &LinearCombination<E>| {
-            write!(s, "(").unwrap();
+            //write!(s, "(").unwrap();
             let mut is_first = true;
             for (var, coeff) in proc_lc::<E>(lc.as_ref()) {
                 if coeff == negone {
@@ -199,10 +199,10 @@ impl<E: Engine> TestConstraintSystem<E> {
 
                 match var.0.get_unchecked() {
                     Index::Input(i) => {
-                        write!(s, "`{}`", &self.inputs[i].1).unwrap();
+                        write!(s, "pub {}", &self.inputs[i].1.replace(" ", "_")).unwrap();
                     },
                     Index::Aux(i) => {
-                        write!(s, "`{}`", &self.aux[i].1).unwrap();
+                        write!(s, "{}", &self.aux[i].1.replace(" ", "_")).unwrap();
                     }
                 }
             }
@@ -210,17 +210,17 @@ impl<E: Engine> TestConstraintSystem<E> {
                 // Nothing was visited, print 0.
                 write!(s, "0").unwrap();
             }
-            write!(s, ")").unwrap();
+            //write!(s, ")").unwrap();
         };
 
         for &(ref a, ref b, ref c, ref name) in &self.constraints {
-            write!(&mut s, "\n").unwrap();
+            write!(&mut s, "\n\n").unwrap();
 
-            write!(&mut s, "{}: ", name).unwrap();
+            write!(&mut s, "# {}:\n", name).unwrap();
             pp(&mut s, a);
-            write!(&mut s, " * ").unwrap();
+            write!(&mut s, "\n* ").unwrap();
             pp(&mut s, b);
-            write!(&mut s, " = ").unwrap();
+            write!(&mut s, "\n= ").unwrap();
             pp(&mut s, c);
         }
 
