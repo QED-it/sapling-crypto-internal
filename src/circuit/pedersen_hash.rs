@@ -180,6 +180,7 @@ mod test {
             // The actual usages
             if n_bits == leaves_len { assert_eq!(cs.num_constraints(), leaves_len + 867) };
             if n_bits == note_len { assert_eq!(cs.num_constraints(), note_len + 982) };
+
         }
     }
 

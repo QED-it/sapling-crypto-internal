@@ -183,7 +183,8 @@ pub fn lookup3_xy_with_conditional_negation<E: Engine, CS>(
                &bits[0].lc::<E>(one, y_coeffs[0b01]) +
                (y_coeffs[0b00], one);
 
-    // Constraint: Point negation
+    // Constraint: Conditional point negation in Montgomery coordinates
+    // (y_lc + y_lc) * (c) = (y_lc - y)
     cs.enforce(
         || "y-coordinate lookup",
         |lc| lc + &y_lc + &y_lc,

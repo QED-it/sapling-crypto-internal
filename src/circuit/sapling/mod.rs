@@ -103,7 +103,7 @@ fn expose_value_commitment<E, CS>(
     // Booleanize the randomness. This does not ensure
     // the bit representation is "in the field" because
     // it doesn't matter for security.
-    let rcv = boolean::field_into_boolean_vec_le(
+    let rcv_bits = boolean::field_into_boolean_vec_le(
         cs.namespace(|| "rcv"),
         value_commitment.as_ref().map(|c| c.randomness)
     )?;
@@ -112,7 +112,7 @@ fn expose_value_commitment<E, CS>(
     let rcv = ecc::fixed_base_multiplication(
         cs.namespace(|| "computation of rcv"),
         FixedGenerators::ValueCommitmentRandomness,
-        &rcv,
+        &rcv_bits,
         params
     )?;
 

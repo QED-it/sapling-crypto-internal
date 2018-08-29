@@ -366,6 +366,8 @@ impl<E: Engine> AllocatedNum<E> {
             }
         )?;
 
+        // (a - b) * (cond) = (a - c)
+        // if(cond) c=b else c=a
         cs.enforce(
             || "first conditional reversal",
             |lc| lc + a.variable - b.variable,
@@ -384,6 +386,8 @@ impl<E: Engine> AllocatedNum<E> {
             }
         )?;
 
+        // (b - a) * (cond) = (b - d)
+        // if(cond) d=a else d=b
         cs.enforce(
             || "second conditional reversal",
             |lc| lc + b.variable - a.variable,
