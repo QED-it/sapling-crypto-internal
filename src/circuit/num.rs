@@ -231,22 +231,23 @@ impl<E: Engine> AllocatedNum<E> {
             self.value
         )?;
 
-        let mut lc = LinearCombination::zero();
+        let mut bits_lc = LinearCombination::zero();
         let mut coeff = E::Fr::one();
 
         for bit in bits.iter() {
-            lc = lc + (coeff, bit.get_variable());
+            bits_lc = bits_lc + (coeff, bit.get_variable());
 
             coeff.double();
         }
 
-        lc = lc - self.variable;
+        bits_lc = bits_lc - self.variable;
 
+        // (0) * (0) = (bits_sum - variable)
         cs.enforce(
             || "unpacking constraint",
             |lc| lc,
             |lc| lc,
-            |_| lc
+            |_| bits_lc
         );
 
         Ok(bits.into_iter().map(|b| Boolean::from(b)).collect())
