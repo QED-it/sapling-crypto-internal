@@ -32,12 +32,16 @@ pub fn pedersen_hash<E: JubjubEngine, CS>(
     assert_eq!(personalization.len(), 6);
 
     let mut edwards_result = None;
-    let mut bits = personalization.iter().chain(bits.iter());
+    let mut bits = personalization.iter().chain(bits.iter()).peekable();
     let mut segment_generators = params.pedersen_circuit_generators().iter();
     let boolean_false = Boolean::constant(false);
 
     let mut segment_i = 0;
     loop {
+        // no more bits left, don't take the next generator
+        if bits.peek().is_none() {
+            break
+        }
         let mut segment_result = None;
         let mut segment_windows = &segment_generators.next()
                                                      .expect("enough segments")[..];
@@ -149,7 +153,7 @@ mod test {
         let mut rng = XorShiftRng::from_seed([0x3dbe6259, 0x8d313d76, 0x3237db17, 0xe5bc0654]);
         let params = &JubjubBls12::new();
 
-        for length in 0..751 {
+        for length in 0..940 {
             for _ in 0..5 {
                 let mut input: Vec<bool> = (0..length).map(|_| rng.gen()).collect();
 
